@@ -33,15 +33,36 @@ var (
 	},
 		[]string{"url", "error"},
 	)
+	tlsNotAfterMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "devmon_tls_notafter",
+		Help: "TLS date not after.",
+	},
+		[]string{"url"},
+	)
+	tlsNotBeforeMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "devmon_tls_notbefore",
+		Help: "TLS date not before.",
+	},
+		[]string{"url"},
+	)
 )
 
 func httpChecker(url string) {
 	log.Printf("Start http checker [%s]\n", url)
 	client := http.Client{
 		Timeout: time.Duration(cfg.Timeout) * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	for {
 		resp, err := client.Get(url)
+		if resp.TLS != nil {
+			if len(resp.TLS.PeerCertificates) > 0 {
+				tlsNotAfterMetric.With(prometheus.Labels{"url": url}).Set(float64(resp.TLS.PeerCertificates[0].NotAfter.Unix()))
+				tlsNotBeforeMetric.With(prometheus.Labels{"url": url}).Set(float64(resp.TLS.PeerCertificates[0].NotBefore.Unix()))
+			}
+		}
 		if err != nil {
 			aliveMetric.With(prometheus.Labels{"url": url}).Set(0)
 			if nerr, ok := err.(net.Error); ok {
