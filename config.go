@@ -43,7 +43,7 @@ func config() int {
 			cfg.Listen = ":9100"
 		}
 	} else {
-		log.Println("Config not found.\n")
+		log.Println("Config not found.")
 		flag.PrintDefaults()
 		return -3
 	}
