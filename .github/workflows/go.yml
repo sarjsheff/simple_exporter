@@ -23,3 +23,9 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: simple_exporter-x86.zip
+        path: simple_exporter
